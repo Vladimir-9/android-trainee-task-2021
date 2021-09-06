@@ -19,7 +19,8 @@ data class Day(
 @JsonClass(generateAdapter = true)
 data class ListWeather(
     val id: Int,
-    val description: String
+    val description: String,
+    val icon: String
 )
 
 @JsonClass(generateAdapter = true)

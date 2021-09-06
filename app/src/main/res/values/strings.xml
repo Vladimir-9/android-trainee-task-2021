@@ -12,4 +12,7 @@
     <string name="empty_request">Пустой запрос</string>
     <string name="message_rationale_dialog">Что бы показать погоду где вы находитесь необходимо одобрение разрешения.</string>
     <string name="weather_here">Погода здесь</string>
+    <string name="geodata_is_disabled">Геоданные отключены</string>
+    <string name="check_network">Проверьте соединение с интернетом</string>
+    <string name="failed_to_get_data">Не удалось получить данные, попробуйте еще раз</string>
 </resources>
