@@ -4,7 +4,7 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
-data class RemoteWeather(
+data class RemoteWeatherInTheCity(
     @Json(name = "coord")
     val coordinates: Coordinates,
     val name: String

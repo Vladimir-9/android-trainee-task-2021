@@ -25,6 +25,15 @@
         app:layout_constraintTop_toTopOf="@id/ed_search" />
 
     <Button
+        android:id="@+id/bt_weather_here"
+        android:layout_width="0dp"
+        android:text="@string/weather_here"
+        android:textAllCaps="false"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/bt_today" />
+
+    <Button
         android:id="@+id/bt_today"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -32,7 +41,7 @@
         android:text="@string/today"
         android:textAllCaps="false"
         app:layout_constraintEnd_toStartOf="@id/bt_week"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/bt_weather_here"
         app:layout_constraintTop_toBottomOf="@id/ed_search" />
 
     <Button

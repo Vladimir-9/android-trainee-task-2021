@@ -1,16 +1,18 @@
 package com.project.weatherapp.ui.today
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
-import androidx.core.app.ActivityCompat
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.project.weatherapp.R
@@ -28,6 +30,8 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
     private var adapterWeather: AdapterForWeather by autoCleared()
     private var locationManager: LocationManager by autoCleared()
     private var locationListener: LocationListener by autoCleared()
+    private var rationaleDialog: AlertDialog by autoCleared()
+    private var gepPermission: ActivityResultLauncher<String> by autoCleared()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -35,6 +39,9 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
         viewBinding = FragmentTodayWeatherBinding.bind(view)
         locationManager =
             (requireActivity().getSystemService(Context.LOCATION_SERVICE) as LocationManager?)!!
+        viewBinding.btWeatherHere.setOnClickListener {
+            gepPermission.launch(REQUIRED_PERMISSION)
+        }
         viewBinding.btSearch.setOnClickListener {
             val searchRequest = viewBinding.edSearch.text.toString()
             if (searchRequest.isNotEmpty())
@@ -48,29 +55,46 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
         initRecyclerView()
         observeCoordinatesCity()
         observeWeatherInTheCityByCoordinates()
+        registerResultContracts()
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            onClickLocationSettings()
-            Timber.e("return")
-            return
-        }
-        locationManager.requestLocationUpdates(
-            LocationManager.GPS_PROVIDER,
-            0L,
-            0F,
-            locationListener
-        )
+    @SuppressLint("MissingPermission")
+    private fun registerResultContracts() {
+        gepPermission =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                when {
+                    granted -> {
+                        locationManager.requestLocationUpdates(
+                            LocationManager.GPS_PROVIDER,
+                            0L,
+                            0F,
+                            locationListener
+                        )
+                    }
+                    shouldShowRequestPermissionRationale(REQUIRED_PERMISSION) -> {
+                        showLocationRationaleDialog(true)
+                    }
+                    else -> {
+                        showLocationRationaleDialog(false)
+                    }
+                }
+            }
     }
 
-    private fun onClickLocationSettings() {
-        startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+    private fun showLocationRationaleDialog(isRequestPermission: Boolean) {
+        rationaleDialog = AlertDialog.Builder(requireContext())
+            .setMessage(getString(R.string.message_rationale_dialog))
+            .setPositiveButton("OK") { dialog, _ ->
+                if (isRequestPermission)
+                    gepPermission.launch(REQUIRED_PERMISSION)
+                else
+                    startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                dialog.dismiss()
+            }
+            .setNegativeButton("Отмена") { dialog, _ ->
+                dialog.cancel()
+            }
+            .show()
     }
 
     private fun initRecyclerView() {
@@ -93,7 +117,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
             }
 
             override fun onLocationChanged(location: Location) {
-                viewModel.get(location.latitude, location.longitude)
+                viewModel.getWeatherInTheCityByCoordinates(location.latitude, location.longitude)
             }
 
             override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
@@ -160,5 +184,9 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
                 }
             }
         }
+    }
+
+    companion object {
+        const val REQUIRED_PERMISSION = Manifest.permission.ACCESS_FINE_LOCATION
     }
 }

@@ -10,4 +10,6 @@
     <string name="city_not_found">По такому городу данных нет</string>
     <string name="nothing_to_geocode">По таким координатам данных нет</string>
     <string name="empty_request">Пустой запрос</string>
+    <string name="message_rationale_dialog">Что бы показать погоду где вы находитесь необходимо одобрение разрешения.</string>
+    <string name="weather_here">Погода здесь</string>
 </resources>

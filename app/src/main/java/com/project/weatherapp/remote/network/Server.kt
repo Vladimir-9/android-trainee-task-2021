@@ -2,7 +2,7 @@ package com.project.weatherapp.remote.network
 
 import com.project.weatherapp.BuildConfig
 import com.project.weatherapp.remote.RemoteDailyForecast
-import com.project.weatherapp.remote.RemoteWeather
+import com.project.weatherapp.remote.RemoteWeatherInTheCity
 import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Query
@@ -14,7 +14,7 @@ interface Server {
         @Query("q") cityName: String,
         @Query("appid") apiKey: String = BuildConfig.API_KEY,
         @Query("lang") lang: String = "ru"
-    ): Call<RemoteWeather>
+    ): Call<RemoteWeatherInTheCity>
 
     @GET("data/2.5/weather")
     fun getWeatherInTheCityByCoordinates(
@@ -22,7 +22,7 @@ interface Server {
         @Query("lon") lon: Double,
         @Query("appid") apiKey: String = BuildConfig.API_KEY,
         @Query("lang") lang: String = "ru"
-    ): Call<RemoteWeather>
+    ): Call<RemoteWeatherInTheCity>
 
     @GET("data/2.5/onecall")
     fun getDailForecast(
