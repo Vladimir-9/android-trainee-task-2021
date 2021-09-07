@@ -6,7 +6,7 @@ import javax.inject.Inject
 
 class RepositoryImpl @Inject constructor(private val serverApi: ServerApi) : Repository {
 
-    override suspend fun getTodayWeather(cityName: String) =
+    override suspend fun getCoordinatesCity(cityName: String) =
         serverApi.getWeatherInTheCity(cityName).awaitResponse()
 
     override suspend fun getWeatherInTheCityByCoordinates(latitude: Double, longitude: Double) =

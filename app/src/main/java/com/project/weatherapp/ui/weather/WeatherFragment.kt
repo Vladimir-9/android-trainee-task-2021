@@ -25,6 +25,18 @@ import com.project.weatherapp.utility.autoCleared
 import com.project.weatherapp.utility.toast
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Due to the fact that the free version of the site API is used,
+ * we have to make a double request to the server. Because,
+ * the weather for several days can only be obtained by coordinates.
+ * Therefore, to get the coordinates of a city, a request is made by the name of the city
+ * from which the coordinates come and a second request for the weather for a week is made.
+ *
+ * When requesting weather by geolocation, we also have to make a double request,
+ * because when requesting by coordinates, the name of the city does not come,
+ * so a second request is made to find out the name of the city.
+ */
+
 @AndroidEntryPoint
 class WeatherFragment : Fragment(R.layout.fragment_weather) {
 
@@ -81,13 +93,16 @@ class WeatherFragment : Fragment(R.layout.fragment_weather) {
             }
     }
 
+    // The dialog is shown to the user to explain why the geolocation permission is requested
     private fun showLocationRationaleDialog(isRequestPermission: Boolean) {
         rationaleDialog = AlertDialog.Builder(requireContext())
             .setMessage(getString(R.string.message_rationale_dialog))
             .setPositiveButton("OK") { dialog, _ ->
                 if (isRequestPermission)
+                // if the user clicked deny
                     getPermission.launch(REQUIRED_PERMISSION)
                 else
+                // if the user clicked deny and don't ask again
                     startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 dialog.dismiss()
             }
@@ -123,6 +138,8 @@ class WeatherFragment : Fragment(R.layout.fragment_weather) {
         }
     }
 
+    // Here we get the coordinates of the city from geolocation (gps).
+    // And also the name of the city, and we make a second request for a weekly forecast.
     private fun observeWeatherInTheCityByCoordinates() {
         viewModel.getWeatherInTheCityByCoordinatesLiveData.observe(viewLifecycleOwner) { state ->
             when (state) {
@@ -143,6 +160,8 @@ class WeatherFragment : Fragment(R.layout.fragment_weather) {
         }
     }
 
+    // Here we get the coordinates of the city to make a repeated request
+    // for the daily weather forecast
     private fun observeCoordinatesCity() {
         viewModel.getCoordinatesCityLiveData.observe(viewLifecycleOwner) { state ->
             when (state) {
@@ -168,6 +187,7 @@ class WeatherFragment : Fragment(R.layout.fragment_weather) {
         }
     }
 
+    // Here we get the Daily weather forecast by coordinates
     private fun observeDailyWeatherForecast() {
         viewModel.getDailyWeatherForecastLiveData.observe(viewLifecycleOwner) { state ->
             when (state) {
@@ -175,11 +195,11 @@ class WeatherFragment : Fragment(R.layout.fragment_weather) {
                     actionsAtTheLoading(false)
                     val dataOfTheWeather = state.remoteDailyForecast?.body()?.daily
                     adapterWeather.items = dataOfTheWeather?.subList(0, 1)
-
+                    // Added ClickListener to switch between the weather today and for the week
                     viewBinding.btToday.setOnClickListener {
                         adapterWeather.items = dataOfTheWeather?.subList(0, 1)
                     }
-
+                    // Added ClickListener to switch between the weather today and for the week
                     viewBinding.btWeek.setOnClickListener {
                         adapterWeather.items = dataOfTheWeather
                     }
@@ -207,6 +227,7 @@ class WeatherFragment : Fragment(R.layout.fragment_weather) {
         imm!!.hideSoftInputFromWindow(viewBinding.weatherContent.windowToken, 0)
     }
 
+    // Checks whether the search query is empty
     private fun reactionToClickingSearch() {
         val searchRequest = viewBinding.edSearch.text.toString().trim()
         if (searchRequest.isNotEmpty()) {

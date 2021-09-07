@@ -38,7 +38,7 @@ class TodayWeatherViewModel @Inject constructor(private val repository: Reposito
         viewModelScope.launch {
             runCatching {
                 _getCoordinatesCityLiveData.postValue(WeatherLoadState.LoadState)
-                val response = repository.getTodayWeather(cityName)
+                val response = repository.getCoordinatesCity(cityName)
                 if (response.isSuccessful) {
                     _getCoordinatesCityLiveData.postValue(
                         WeatherLoadState.Success(null, response)
@@ -61,8 +61,10 @@ class TodayWeatherViewModel @Inject constructor(private val repository: Reposito
                     response = repository.getDailyForecast(lat, lon)
                 }
                 if (response?.isSuccessful == true)
-                    _getDailyWeatherForecastLiveData.value =
-                        WeatherLoadState.Success(response, null)
+                    _getDailyWeatherForecastLiveData.postValue(
+                        WeatherLoadState.Success(response, null
+                        )
+                    )
             }.onFailure { throwable ->
                 _getDailyWeatherForecastLiveData.postValue(WeatherLoadState.Error(throwable.javaClass.name))
             }
@@ -83,6 +85,8 @@ class TodayWeatherViewModel @Inject constructor(private val repository: Reposito
         }
     }
 
+    // If the user entered incorrect data in the search query,
+    // the server responds with an error and sends errorBody
     private fun badRequest(response: Response<RemoteWeatherInTheCity>) {
         val errorBody = response.errorBody()?.string() ?: ""
         if (errorBody.isNotEmpty()) {
