@@ -48,6 +48,8 @@ class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
     private fun loadImage(iconType: String) {
         Glide.with(itemView)
             .load("https://openweathermap.org/img/wn/$iconType@2x.png")
+            .placeholder(R.drawable.ic_setup)
+            .error(R.drawable.ic_connected_no_internet)
             .into(viewBinding.imageView)
     }
 

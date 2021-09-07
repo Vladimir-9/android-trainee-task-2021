@@ -1,4 +1,4 @@
-package com.project.weatherapp.ui.today
+package com.project.weatherapp.ui.weather
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -18,31 +18,32 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import com.project.weatherapp.R
-import com.project.weatherapp.databinding.FragmentTodayWeatherBinding
+import com.project.weatherapp.databinding.FragmentWeatherBinding
 import com.project.weatherapp.ui.adapter.AdapterForWeather
 import com.project.weatherapp.utility.WeatherItemDecoration
 import com.project.weatherapp.utility.autoCleared
 import com.project.weatherapp.utility.toast
-import timber.log.Timber
+import dagger.hilt.android.AndroidEntryPoint
 
-class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
+@AndroidEntryPoint
+class WeatherFragment : Fragment(R.layout.fragment_weather) {
 
-    private var viewBinding: FragmentTodayWeatherBinding by autoCleared()
+    private var viewBinding: FragmentWeatherBinding by autoCleared()
     private val viewModel: TodayWeatherViewModel by viewModels()
     private var adapterWeather: AdapterForWeather by autoCleared()
     private var locationManager: LocationManager by autoCleared()
     private var locationListener: LocationListener by autoCleared()
     private var rationaleDialog: AlertDialog by autoCleared()
-    private var gepPermission: ActivityResultLauncher<String> by autoCleared()
+    private var getPermission: ActivityResultLauncher<String> by autoCleared()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        viewBinding = FragmentTodayWeatherBinding.bind(view)
+        viewBinding = FragmentWeatherBinding.bind(view)
         locationManager =
             (requireActivity().getSystemService(Context.LOCATION_SERVICE) as LocationManager?)!!
         viewBinding.btWeatherHere.setOnClickListener {
-            gepPermission.launch(REQUIRED_PERMISSION)
+            getPermission.launch(REQUIRED_PERMISSION)
         }
         viewBinding.btSearch.setOnClickListener {
             reactionToClickingSearch()
@@ -58,7 +59,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
 
     @SuppressLint("MissingPermission")
     private fun registerResultContracts() {
-        gepPermission =
+        getPermission =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
                 when {
                     granted -> {
@@ -68,7 +69,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
                             0F,
                             locationListener
                         )
-                        visibilityElementWhenLoading(true)
+                        actionsAtTheLoading(true)
                     }
                     shouldShowRequestPermissionRationale(REQUIRED_PERMISSION) -> {
                         showLocationRationaleDialog(true)
@@ -85,7 +86,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
             .setMessage(getString(R.string.message_rationale_dialog))
             .setPositiveButton("OK") { dialog, _ ->
                 if (isRequestPermission)
-                    gepPermission.launch(REQUIRED_PERMISSION)
+                    getPermission.launch(REQUIRED_PERMISSION)
                 else
                     startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                 dialog.dismiss()
@@ -96,20 +97,11 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
             .show()
     }
 
-    private fun initRecyclerView() {
-        adapterWeather = AdapterForWeather()
-        with(viewBinding.recyclerView) {
-            adapter = adapterWeather
-            addItemDecoration(WeatherItemDecoration())
-            setHasFixedSize(true)
-        }
-    }
-
     private fun initLocationListener() {
         locationListener = object : LocationListener {
             override fun onProviderDisabled(provider: String) {
                 toast(getString(R.string.geodata_is_disabled))
-                visibilityElementWhenLoading(false)
+                actionsAtTheLoading(false)
             }
 
             override fun onLocationChanged(location: Location) {
@@ -122,21 +114,19 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
         }
     }
 
-    private fun observeWeatherInTheCityByCoordinates() {
-        viewModel.getWeatherInTheCityByCoordinatesLiveData.observe(viewLifecycleOwner) {
-            val latitude = it?.body()?.coordinates?.latitude
-            val longitude = it?.body()?.coordinates?.longitude
-            val cityName = it?.body()?.name
-            viewBinding.twCityName.text = cityName
-            viewModel.getAllWeather(latitude!!, longitude!!)
+    private fun initRecyclerView() {
+        adapterWeather = AdapterForWeather()
+        with(viewBinding.recyclerView) {
+            adapter = adapterWeather
+            addItemDecoration(WeatherItemDecoration())
+            setHasFixedSize(true)
         }
     }
 
-    private fun observeCoordinatesCity() {
-        viewModel.getCoordinatesCityLiveData.observe(viewLifecycleOwner) { state ->
+    private fun observeWeatherInTheCityByCoordinates() {
+        viewModel.getWeatherInTheCityByCoordinatesLiveData.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is WeatherLoadState.Success -> {
-                    Timber.e("Success")
                     val latitude = state.coordinatesCity?.body()?.coordinates?.latitude
                     val longitude = state.coordinatesCity?.body()?.coordinates?.longitude
                     val cityName = state.coordinatesCity?.body()?.name
@@ -144,8 +134,27 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
                     viewModel.getAllWeather(latitude!!, longitude!!)
                 }
                 is WeatherLoadState.Error -> {
-                    visibilityElementWhenLoading(false)
-                    Timber.e("City()Error = ${state.errorMessage}")
+                    actionsAtTheLoading(false)
+                    toast(getString(R.string.check_network))
+                }
+                is WeatherLoadState.LoadState -> {
+                }
+            }
+        }
+    }
+
+    private fun observeCoordinatesCity() {
+        viewModel.getCoordinatesCityLiveData.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                is WeatherLoadState.Success -> {
+                    val latitude = state.coordinatesCity?.body()?.coordinates?.latitude
+                    val longitude = state.coordinatesCity?.body()?.coordinates?.longitude
+                    val cityName = state.coordinatesCity?.body()?.name
+                    viewBinding.twCityName.text = cityName
+                    viewModel.getAllWeather(latitude!!, longitude!!)
+                }
+                is WeatherLoadState.Error -> {
+                    actionsAtTheLoading(false)
                     when (state.errorMessage) {
                         "city not found" -> toast(getString(R.string.city_not_found))
                         "Nothing to geocode" -> toast(getString(R.string.nothing_to_geocode))
@@ -153,7 +162,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
                     }
                 }
                 is WeatherLoadState.LoadState -> {
-                    visibilityElementWhenLoading(true)
+                    actionsAtTheLoading(true)
                 }
             }
         }
@@ -163,7 +172,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
         viewModel.getDailyWeatherForecastLiveData.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is WeatherLoadState.Success -> {
-                    visibilityElementWhenLoading(false)
+                    actionsAtTheLoading(false)
                     val dataOfTheWeather = state.remoteDailyForecast?.body()?.daily
                     adapterWeather.items = dataOfTheWeather?.subList(0, 1)
 
@@ -176,7 +185,7 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
                     }
                 }
                 is WeatherLoadState.Error -> {
-                    visibilityElementWhenLoading(false)
+                    actionsAtTheLoading(false)
                     toast(getString(R.string.failed_to_get_data))
                 }
                 is WeatherLoadState.LoadState -> {
@@ -185,9 +194,11 @@ class TodayWeatherFragment : Fragment(R.layout.fragment_today_weather) {
         }
     }
 
-    private fun visibilityElementWhenLoading(isVisible: Boolean) {
-        viewBinding.progressBar.isVisible = isVisible
-        viewBinding.recyclerView.isVisible = isVisible.not()
+    private fun actionsAtTheLoading(isLoading: Boolean) {
+        viewBinding.progressBar.isVisible = isLoading
+        viewBinding.recyclerView.isVisible = isLoading.not()
+        viewBinding.btWeatherHere.isEnabled = isLoading.not()
+        viewBinding.btSearch.isEnabled = isLoading.not()
     }
 
     private fun hideKeyboard() {

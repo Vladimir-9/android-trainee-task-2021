@@ -1,20 +1,22 @@
-package com.project.weatherapp.ui.today
+package com.project.weatherapp.ui.weather
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.project.weatherapp.data.RepositoryImpl
+import com.project.weatherapp.data.Repository
 import com.project.weatherapp.remote.RemoteDailyForecast
 import com.project.weatherapp.remote.RemoteWeatherInTheCity
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import retrofit2.Response
+import javax.inject.Inject
 import kotlin.math.abs
 
-class TodayWeatherViewModel : ViewModel() {
+@HiltViewModel
+class TodayWeatherViewModel @Inject constructor(private val repository: Repository) : ViewModel() {
 
-    private val repository = RepositoryImpl()
     private var response: Response<RemoteDailyForecast>? = null
     private var latitude = 0.0
     private var longitude = 0.0
@@ -28,8 +30,8 @@ class TodayWeatherViewModel : ViewModel() {
         get() = _getDailyWeatherForecastLiveData
 
     private val _getWeatherInTheCityByCoordinatesLiveData =
-        MutableLiveData<Response<RemoteWeatherInTheCity>?>()
-    val getWeatherInTheCityByCoordinatesLiveData: LiveData<Response<RemoteWeatherInTheCity>?>
+        MutableLiveData<WeatherLoadState>()
+    val getWeatherInTheCityByCoordinatesLiveData: LiveData<WeatherLoadState>
         get() = _getWeatherInTheCityByCoordinatesLiveData
 
     fun getCoordinatesCity(cityName: String) {
@@ -38,7 +40,9 @@ class TodayWeatherViewModel : ViewModel() {
                 _getCoordinatesCityLiveData.postValue(WeatherLoadState.LoadState)
                 val response = repository.getTodayWeather(cityName)
                 if (response.isSuccessful) {
-                    _getCoordinatesCityLiveData.postValue(WeatherLoadState.Success(null, response))
+                    _getCoordinatesCityLiveData.postValue(
+                        WeatherLoadState.Success(null, response)
+                    )
                 } else {
                     badRequest(response)
                 }
@@ -48,7 +52,7 @@ class TodayWeatherViewModel : ViewModel() {
         }
     }
 
-    fun getAllWeather(lat: Double = latitude, lon: Double = longitude) {
+    fun getAllWeather(lat: Double, lon: Double) {
         viewModelScope.launch {
             runCatching {
                 if (isNeedANewRequest(lat, lon)) {
@@ -65,10 +69,17 @@ class TodayWeatherViewModel : ViewModel() {
         }
     }
 
-    fun getWeatherInTheCityByCoordinates(latitude: Double, longitude: Double) {
+    fun getWeatherInTheCityByCoordinates(lat: Double, lon: Double) {
         viewModelScope.launch {
-            val response = repository.getWeatherInTheCityByCoordinates(latitude, longitude)
-            _getWeatherInTheCityByCoordinatesLiveData.value = response
+            runCatching {
+                _getWeatherInTheCityByCoordinatesLiveData.postValue(WeatherLoadState.LoadState)
+                val response = repository.getWeatherInTheCityByCoordinates(lat, lon)
+                _getWeatherInTheCityByCoordinatesLiveData.postValue(
+                    WeatherLoadState.Success(null, response)
+                )
+            }.onFailure { throwable ->
+                _getWeatherInTheCityByCoordinatesLiveData.postValue(WeatherLoadState.Error(throwable.javaClass.name))
+            }
         }
     }
 

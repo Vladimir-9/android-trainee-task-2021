@@ -1,16 +1,17 @@
 package com.project.weatherapp.data
 
-import com.project.weatherapp.remote.network.Networking
+import com.project.weatherapp.remote.network.ServerApi
 import retrofit2.awaitResponse
+import javax.inject.Inject
 
-class RepositoryImpl : Repository {
+class RepositoryImpl @Inject constructor(private val serverApi: ServerApi) : Repository {
 
     override suspend fun getTodayWeather(cityName: String) =
-        Networking.networkingApi.getWeatherInTheCity(cityName).awaitResponse()
+        serverApi.getWeatherInTheCity(cityName).awaitResponse()
 
-    suspend fun getWeatherInTheCityByCoordinates(latitude: Double, longitude: Double) =
-        Networking.networkingApi.getWeatherInTheCityByCoordinates(latitude, longitude).awaitResponse()
+    override suspend fun getWeatherInTheCityByCoordinates(latitude: Double, longitude: Double) =
+        serverApi.getWeatherInTheCityByCoordinates(latitude, longitude).awaitResponse()
 
-    suspend fun getDailyForecast(latitude: Double, longitude: Double) =
-        Networking.networkingApi.getDailForecast(latitude, longitude).awaitResponse()
+    override suspend fun getDailyForecast(latitude: Double, longitude: Double) =
+        serverApi.getDailForecast(latitude, longitude).awaitResponse()
 }
